@@ -196,15 +196,14 @@ function Plan() {
     }
     base = base.filter(c => !planCourseIds.has(c.id));
     
-    if (!q) return base.slice(0, 60);
+    if (!q) return base;
     return base
       .filter((c) => {
         const label = courseLabel(c).toLowerCase();
         const title = (c.title || '').toLowerCase();
         const desc = (c.description || '').toLowerCase();
         return label.includes(q) || title.includes(q) || desc.includes(q);
-      })
-      .slice(0, 60);
+      });
   }, [courses, searchQuery, selectedSubject?.code, planCourseIds, showBookmarked, bookmarkedCourseIds, courseCache, courseLabel]);
 
   const itemsByYearTerm = useMemo(() => {
