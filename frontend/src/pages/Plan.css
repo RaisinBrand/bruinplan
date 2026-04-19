@@ -865,7 +865,8 @@
   gap: 4px;
 }
 
-.course-slot:hover .course-slot-actions {
+.course-slot:hover .course-slot-actions,
+.course-slot-actions.open {
   display: flex;
 }
 
