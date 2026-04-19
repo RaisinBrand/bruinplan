@@ -11,6 +11,7 @@ import PrereqWarningModal from '../components/Plan/PrereqWarningModal';
 import CourseDetailModal from '../components/Plan/CourseDetailModal';
 import CreatePlanModal from '../components/Plan/CreatePlanModal';
 import { API_BASE } from '../api/constants';
+import { loadCourseColorOverrides, saveCourseColorOverrides } from '../utils/colors';
 
 const TERMS = ['FALL', 'WINTER', 'SPRING', 'SUMMER_A', 'SUMMER_C'];
 const YEAR_COUNT = 4;
@@ -44,6 +45,25 @@ function Plan() {
   const [editingName, setEditingName] = useState('');
   const [showBookmarked, setShowBookmarked] = useState(false);
   const [bookmarkedCourseIds, setBookmarkedCourseIds] = useState(new Set());
+
+  const [courseColorOverrides, setCourseColorOverrides] = useState(() => loadCourseColorOverrides());
+
+  const handleSetCourseColor = useCallback((courseId, hex) => {
+    setCourseColorOverrides(prev => {
+      const next = { ...prev, [courseId]: hex };
+      saveCourseColorOverrides(next);
+      return next;
+    });
+  }, []);
+
+  const handleResetCourseColor = useCallback((courseId) => {
+    setCourseColorOverrides(prev => {
+      const next = { ...prev };
+      delete next[courseId];
+      saveCourseColorOverrides(next);
+      return next;
+    });
+  }, []);
 
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(false);
@@ -858,6 +878,9 @@ function Plan() {
             onCourseDoubleClick={(course) => setDetailModal({ open: true, course })}
             itemsLoading={itemsLoading}
             itemsError={itemsError}
+            courseColorOverrides={courseColorOverrides}
+            onSetCourseColor={handleSetCourseColor}
+            onResetCourseColor={handleResetCourseColor}
           />
         </main>
       </div>

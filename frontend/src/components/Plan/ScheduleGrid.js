@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSubjectColorCode } from '../../utils/colors';
+import { getSubjectColorCode, colorsFromHex } from '../../utils/colors';
 
 const TERMS = ['FALL', 'WINTER', 'SPRING', 'SUMMER_A', 'SUMMER_C'];
 const TERM_LABELS = { FALL: 'Fall', WINTER: 'Winter', SPRING: 'Spring', SUMMER_A: 'Summer A', SUMMER_C: 'Summer C' };
@@ -17,6 +17,9 @@ function ScheduleGrid({
   onCourseDoubleClick,
   itemsLoading,
   itemsError,
+  courseColorOverrides,
+  onSetCourseColor,
+  onResetCourseColor,
 }) {
   return (
     <div className="schedule-section">
@@ -65,7 +68,9 @@ function ScheduleGrid({
                     {(itemsByYearTerm[yearNum]?.[term] || []).map(item => {
                       const cached = courseCache[item.course_id];
                       const subjectString = cached ? cached.subjectCode : `Course ${item.course_id}`;
-                      const colors = getSubjectColorCode(subjectString);
+                      const override = courseColorOverrides?.[item.course_id];
+                      const overrideColors = override ? colorsFromHex(override) : null;
+                      const colors = overrideColors || getSubjectColorCode(subjectString);
                       return (
                         <div
                           key={item.id}
@@ -96,16 +101,49 @@ function ScheduleGrid({
                           <div className="course-units">
                             {cached ? `${cached.units} units` : ''}
                           </div>
-                          <button
-                            className="delete-item-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteItem(item.id);
-                            }}
-                            title="Remove from plan"
+                          <div
+                            className="course-slot-actions"
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            draggable={false}
                           >
-                            &times;
-                          </button>
+                            <label
+                              className="course-color-btn"
+                              title="Change color"
+                              style={{ backgroundColor: colors.border }}
+                            >
+                              <input
+                                type="color"
+                                className="course-color-input"
+                                value={override || '#247ad6'}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => onSetCourseColor?.(item.course_id, e.target.value)}
+                              />
+                            </label>
+                            {override && (
+                              <button
+                                className="course-color-reset-btn"
+                                title="Reset color"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onResetCourseColor?.(item.course_id);
+                                }}
+                              >
+                                ↺
+                              </button>
+                            )}
+                            <button
+                              className="delete-item-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteItem(item.id);
+                              }}
+                              title="Remove from plan"
+                            >
+                              &times;
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
