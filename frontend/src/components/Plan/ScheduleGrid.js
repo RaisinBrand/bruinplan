@@ -1,5 +1,5 @@
-import React from 'react';
-import { getSubjectColorCode, colorsFromHex } from '../../utils/colors';
+import React, { useEffect, useState } from 'react';
+import { getSubjectColorCode, colorsFromHex, COURSE_COLOR_PALETTE } from '../../utils/colors';
 
 const TERMS = ['FALL', 'WINTER', 'SPRING', 'SUMMER_A', 'SUMMER_C'];
 const TERM_LABELS = { FALL: 'Fall', WINTER: 'Winter', SPRING: 'Spring', SUMMER_A: 'Summer A', SUMMER_C: 'Summer C' };
@@ -21,6 +21,19 @@ function ScheduleGrid({
   onSetCourseColor,
   onResetCourseColor,
 }) {
+  const [colorMenuItemId, setColorMenuItemId] = useState(null);
+
+  useEffect(() => {
+    if (!colorMenuItemId) return;
+    const close = () => setColorMenuItemId(null);
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [colorMenuItemId]);
+
   return (
     <div className="schedule-section">
       {itemsLoading && (
@@ -94,6 +107,11 @@ function ScheduleGrid({
                               onCourseDoubleClick(cached);
                             }
                           }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setColorMenuItemId(prev => prev === item.id ? null : item.id);
+                          }}
                         >
                           <div className="course-name">
                             {cached ? `${cached.subjectCode || ''} ${cached.number || ''}`.trim() : `Course #${item.course_id}`}
@@ -102,36 +120,44 @@ function ScheduleGrid({
                             {cached ? `${cached.units} units` : ''}
                           </div>
                           <div
-                            className="course-slot-actions"
+                            className={`course-slot-actions${colorMenuItemId === item.id ? ' open' : ''}`}
                             onClick={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
                             onMouseDown={(e) => e.stopPropagation()}
                             draggable={false}
                           >
-                            <label
-                              className="course-color-btn"
-                              title="Change color"
-                              style={{ backgroundColor: colors.border }}
-                            >
-                              <input
-                                type="color"
-                                className="course-color-input"
-                                value={override || '#247ad6'}
+                            {colorMenuItemId === item.id && (
+                              <div
+                                className="course-color-swatches"
                                 onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => onSetCourseColor?.(item.course_id, e.target.value)}
-                              />
-                            </label>
-                            {override && (
-                              <button
-                                className="course-color-reset-btn"
-                                title="Reset color"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onResetCourseColor?.(item.course_id);
-                                }}
                               >
-                                ↺
-                              </button>
+                                {COURSE_COLOR_PALETTE.map(hex => (
+                                  <button
+                                    key={hex}
+                                    type="button"
+                                    className={`course-color-swatch${override === hex ? ' selected' : ''}`}
+                                    style={{ backgroundColor: hex }}
+                                    title={`Set color ${hex}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onSetCourseColor?.(item.course_id, hex);
+                                      setColorMenuItemId(null);
+                                    }}
+                                  />
+                                ))}
+                                {override && (
+                                  <button
+                                    type="button"
+                                    className="course-color-swatch reset"
+                                    title="Reset to white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onResetCourseColor?.(item.course_id);
+                                      setColorMenuItemId(null);
+                                    }}
+                                  />
+                                )}
+                              </div>
                             )}
                             <button
                               className="delete-item-btn"
