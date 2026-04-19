@@ -302,9 +302,9 @@ function DegreeProgress() {
   return (
     <div className="degree-progress-page">
       <NavBar />
-
+      
       <div className="degree-progress-container">
-        <div className="overview-section">
+        {/* <div className="overview-section">
           <div className="overview-left">
             <h2>Degree Progress Overview</h2>
             <div className="progress-circles">
@@ -359,7 +359,7 @@ function DegreeProgress() {
             </div>
             <p className="projection-text">On track to graduate in 4 years based on current pace.</p>
           </div>
-        </div>
+        </div> */}
 
         <div className="tabs-section">
           <button
@@ -368,12 +368,12 @@ function DegreeProgress() {
           >
             Courses Needed/Completed
           </button>
-          <button
+          {/* <button
             className={`tab ${activeTab === 'suggestions' ? 'active' : ''}`}
             onClick={() => setActiveTab('suggestions')}
           >
             Course Suggestions
-          </button>
+          </button> */}
         </div>
 
         {activeTab === 'needed' && (
@@ -586,7 +586,7 @@ function DegreeProgress() {
           </div>
         )}
       </div>
-
+        
       <CourseDetailModal
         isOpen={detailModal.open}
         course={detailModal.course}
