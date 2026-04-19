@@ -3,18 +3,10 @@ from rest_framework.response import Response
 from rest_framework import status
 import uuid
 from django.db import IntegrityError
+from django.db.models import Prefetch
 
 
 from api.models import Plan, UserProfile, PlanItem, Course, Subject
-
-def _debug_auth(request):
-    print("=== AUTH DEBUG ===")
-    print("Authorization header:", request.headers.get("Authorization"))
-    print("X-User-Id header:", request.headers.get("X-User-Id"))
-    print("request.user:", request.user)
-    print("is_authenticated:", getattr(request.user, "is_authenticated", None))
-    print("request.user.id:", getattr(request.user, "id", None))
-    print("==================")
 
 def _get_user_uuid(request):
     user = getattr(request, "user", None)
@@ -44,25 +36,48 @@ def _resolve_plan_user_id(request):
 
 @api_view(["GET", "POST"])
 def plans_view(request):
-    _debug_auth(request)
-
     plan_user_id, err = _resolve_plan_user_id(request)
     if err:
         return err
 
     if request.method == "GET":
-        qs = Plan.objects.filter(user_id=plan_user_id).order_by("-updated_at", "-created_at")
-        data = [
-            {
+        qs = (
+            Plan.objects.filter(user_id=plan_user_id)
+            .order_by("-updated_at", "-created_at")
+            .prefetch_related(
+                Prefetch(
+                    "items",
+                    queryset=PlanItem.objects.order_by(
+                        "year_index", "term", "position", "id"
+                    ),
+                )
+            )
+        )
+        data = []
+        for p in qs:
+            row = {
                 "id": p.id,
                 "user_id": str(p.user_id),
                 "name": p.name,
                 "start_year": p.start_year,
                 "created_at": p.created_at,
                 "updated_at": p.updated_at,
+                "items": [
+                    {
+                        "id": it.id,
+                        "plan_id": it.plan_id,
+                        "year_index": it.year_index,
+                        "term": it.term,
+                        "course_id": it.course_id,
+                        "status": it.status,
+                        "position": it.position,
+                        "notes": it.notes,
+                        "created_at": it.created_at,
+                    }
+                    for it in p.items.all()
+                ],
             }
-            for p in qs
-        ]
+            data.append(row)
         return Response({"plans": data})
 
     name = request.data.get("name")
@@ -189,8 +204,6 @@ def plans_view(request):
 
 @api_view(["GET", "POST"])
 def plan_items_view(request, plan_id: int):
-    _debug_auth(request)
-
     plan_user_id, err = _resolve_plan_user_id(request)
     if err:
         return err
@@ -286,8 +299,6 @@ def plan_items_view(request, plan_id: int):
 
 @api_view(["PUT", "PATCH", "DELETE"])
 def plan_item_detail_view(request, plan_id: int, item_id: int):
-    _debug_auth(request)
-
     plan_user_id, err = _resolve_plan_user_id(request)
     if err:
         return err
@@ -358,8 +369,6 @@ def plan_item_detail_view(request, plan_id: int, item_id: int):
 
 @api_view(["PUT", "PATCH", "DELETE"])
 def plan_detail_view(request, plan_id: int):
-    _debug_auth(request)
-
     plan_user_id, err = _resolve_plan_user_id(request)
     if err:
         return err

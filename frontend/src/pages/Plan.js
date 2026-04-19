@@ -11,6 +11,7 @@ import PrereqWarningModal from '../components/Plan/PrereqWarningModal';
 import CourseDetailModal from '../components/Plan/CourseDetailModal';
 import CreatePlanModal from '../components/Plan/CreatePlanModal';
 import { API_BASE } from '../api/constants';
+import { fetchSubjectsCatalog, fetchCoursesForSubjectCached, sortSubjectsList } from '../api/clientCache';
 import { loadCourseColorOverrides, saveCourseColorOverrides } from '../utils/colors';
 
 const TERMS = ['FALL', 'WINTER', 'SPRING', 'SUMMER_A', 'SUMMER_C'];
@@ -41,6 +42,10 @@ function Plan() {
   const subjectBoxRef = useRef(null);
   const { user } = useAuth();
   const location = useLocation();
+  const courseCacheRef = useRef({});
+  useEffect(() => {
+    courseCacheRef.current = courseCache;
+  }, [courseCache]);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState('');
   const [showBookmarked, setShowBookmarked] = useState(false);
@@ -85,18 +90,8 @@ function Plan() {
       setSubjectsLoading(true);
       setSubjectsError('');
       try {
-        const res = await fetch(`${API_BASE}/api/subjects`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const list = Array.isArray(data?.subjects) ? data.subjects : [];
-        list.sort((a, b) => {
-          const c = (a.code || '').localeCompare(b.code || '');
-          return c !== 0 ? c : (a.name || '').localeCompare(b.name || '');
-        });
-        if (!cancelled) setSubjects(list);
+        const data = await fetchSubjectsCatalog(API_BASE);
+        if (!cancelled) setSubjects(sortSubjectsList(data));
       } catch (e) {
         if (!cancelled) setSubjectsError('Failed to load subjects.');
       } finally {
@@ -114,12 +109,7 @@ function Plan() {
       setCoursesLoading(true);
       setCoursesError('');
       try {
-        const res = await fetch(`${API_BASE}/api/courses/${selectedSubject.id}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await fetchCoursesForSubjectCached(API_BASE, selectedSubject.id);
         const list = Array.isArray(data?.courses) ? data.courses : [];
         if (!cancelled) setCourses(list);
       } catch (e) {
@@ -145,7 +135,8 @@ function Plan() {
           setBookmarkedCourseIds(new Set(ids));
           
           if (ids.length > 0) {
-            const missingIds = ids.filter(id => !courseCache[id]);
+            const cache = courseCacheRef.current;
+            const missingIds = ids.filter(id => !cache[id]);
             if (missingIds.length > 0) {
               const cRes = await fetch(`${API_BASE}/api/courses/by-ids/?ids=${missingIds.join(',')}`);
               if (cRes.ok) {
@@ -173,7 +164,7 @@ function Plan() {
       }
     }
     fetchBookmarks();
-  }, [user?.id, courseCache]);
+  }, [user?.id]);
 
   useEffect(() => {
     function onDocMouseDown(e) {
@@ -259,28 +250,39 @@ function Plan() {
       const plansList = Array.isArray(data?.plans) ? data.plans : [];
       setPlans(plansList);
 
-      // Load item previews for each plan
       const previews = {};
       const allCourseIds = new Set();
 
-      await Promise.all(plansList.map(async (plan) => {
-        try {
-          const iRes = await fetch(`${API_BASE}/api/plans/${plan.id}/items/`, {
-            headers: { 'Content-Type': 'application/json', 'X-User-Id': userId },
-          });
-          if (iRes.ok) {
-            const iData = await iRes.json();
-            const items = Array.isArray(iData?.items) ? iData.items : [];
-            previews[plan.id] = items;
-            items.forEach(it => allCourseIds.add(it.course_id));
-          }
-        } catch {}
-      }));
+      const needsPerPlanFetch = plansList.some((p) => !Array.isArray(p.items));
+      if (!needsPerPlanFetch) {
+        for (const plan of plansList) {
+          const items = Array.isArray(plan.items) ? plan.items : [];
+          previews[plan.id] = items;
+          items.forEach((it) => allCourseIds.add(it.course_id));
+        }
+      } else {
+        await Promise.all(
+          plansList.map(async (plan) => {
+            try {
+              const iRes = await fetch(`${API_BASE}/api/plans/${plan.id}/items/`, {
+                headers: { 'Content-Type': 'application/json', 'X-User-Id': userId },
+              });
+              if (iRes.ok) {
+                const iData = await iRes.json();
+                const items = Array.isArray(iData?.items) ? iData.items : [];
+                previews[plan.id] = items;
+                items.forEach((it) => allCourseIds.add(it.course_id));
+              }
+            } catch {}
+          })
+        );
+      }
 
       setPlanPreviews(previews);
 
       // Batch-fetch course details for all course IDs we don't have cached
-      const missing = [...allCourseIds].filter(id => !courseCache[id]);
+      const cacheSnapshot = courseCacheRef.current;
+      const missing = [...allCourseIds].filter(id => !cacheSnapshot[id]);
       if (missing.length > 0) {
         try {
           const cRes = await fetch(`${API_BASE}/api/courses/by-ids/?ids=${missing.join(',')}`);
@@ -307,7 +309,7 @@ function Plan() {
     } finally {
       setPlansLoading(false);
     }
-  }, [user?.id, courseCache]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (view === 'all-plans' && user?.id) loadPlans();

@@ -495,6 +495,32 @@
   border-left-color: #b579d2;
 }
 
+/* Sidebar search results: match schedule slot typography (.course-slot .course-name / .course-units) */
+.course-card-sidebar .course-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+
+.course-title-sidebar {
+  font-size: 11px;
+  line-height: 1.25;
+  color: #777;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-card-sidebar .course-units {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.2;
+}
+
+/* Plan cards list (all-plans view) — keep readable labels */
 .course-header {
   display: flex;
   justify-content: space-between;

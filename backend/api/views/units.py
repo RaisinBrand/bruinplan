@@ -26,7 +26,7 @@ def ge_units(request):
     except UserProfile.DoesNotExist:
         return Response({"error": "User profile not found"}, status=404)
 
-    return Response({"total_units": profile.ge_units})
+    return Response({"ge_units": profile.ge_units, "total_units": profile.ge_units})
 
 @api_view(["GET"])
 def major_units(request):
@@ -39,7 +39,7 @@ def major_units(request):
     except UserProfile.DoesNotExist:
         return Response({"error": "User profile not found"}, status=404)
 
-    return Response({"total_units": profile.major_units})
+    return Response({"major_units": profile.major_units, "total_units": profile.major_units})
 
 @api_view(["GET"])
 def upper_units(request):
@@ -52,4 +52,4 @@ def upper_units(request):
     except UserProfile.DoesNotExist:
         return Response({"error": "User profile not found"}, status=404)
 
-    return Response({"total_units": profile.upper_units})
+    return Response({"upper_units": profile.upper_units, "total_units": profile.upper_units})

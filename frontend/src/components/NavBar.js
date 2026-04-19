@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE } from '../api/constants';
+import { fetchSubjectsCatalog } from '../api/clientCache';
 import './NavBar.css';
 
 function NavBar() {
@@ -24,6 +26,16 @@ function NavBar() {
     navigate('/signup');
   };
 
+  /** Warm shared catalog + route JS chunk before navigation (hover / keyboard focus). */
+  const prefetchRoute = useCallback((path) => {
+    if (!isAuthenticated) return;
+    fetchSubjectsCatalog(API_BASE).catch(() => {});
+    if (path === '/explore') import('../pages/ExploreCourses');
+    else if (path === '/plan') import('../pages/Plan');
+    else if (path === '/progress') import('../pages/DegreeProgress');
+    else if (path === '/profile') import('../pages/Profile');
+  }, [isAuthenticated]);
+
   const isActive = (path) => {
     return location.pathname === path ? 'active' : '';
   };
@@ -41,6 +53,8 @@ function NavBar() {
                 to="/explore"
                 className={`navbar-link ${!isAuthenticated ? 'disabled' : ''} ${isActive('/explore')}`}
                 onClick={(e) => handleLinkClick(e, '/explore')}
+                onMouseEnter={() => prefetchRoute('/explore')}
+                onFocus={() => prefetchRoute('/explore')}
               >
                 Explore Courses
               </Link>
@@ -48,6 +62,8 @@ function NavBar() {
                 to="/plan"
                 className={`navbar-link ${!isAuthenticated ? 'disabled' : ''} ${isActive('/plan')}`}
                 onClick={(e) => handleLinkClick(e, '/plan')}
+                onMouseEnter={() => prefetchRoute('/plan')}
+                onFocus={() => prefetchRoute('/plan')}
               >
                 Plan
               </Link>
@@ -55,6 +71,8 @@ function NavBar() {
                 to="/progress"
                 className={`navbar-link ${!isAuthenticated ? 'disabled' : ''} ${isActive('/progress')}`}
                 onClick={(e) => handleLinkClick(e, '/progress')}
+                onMouseEnter={() => prefetchRoute('/progress')}
+                onFocus={() => prefetchRoute('/progress')}
               >
                 Degree Progress
               </Link>
@@ -62,6 +80,8 @@ function NavBar() {
                 to="/profile"
                 className={`navbar-link ${!isAuthenticated ? 'disabled' : ''} ${isActive('/profile')}`}
                 onClick={(e) => handleLinkClick(e, '/profile')}
+                onMouseEnter={() => prefetchRoute('/profile')}
+                onFocus={() => prefetchRoute('/profile')}
               >
                 Profile
               </Link>

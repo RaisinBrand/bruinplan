@@ -1,4 +1,5 @@
 import re
+from django.db.models import Q
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from api.models.course import Course
@@ -77,39 +78,88 @@ def course_prereqs(request, course_id = None):
             "requisites": reqs
         })
 
+def _norm_label(s):
+    return re.sub(r"\s+", " ", str(s).strip().upper())
+
+
+def _serialize_course_row(c, subject_code):
+    return {
+        "id": c.id,
+        "subject_area_id": c.subject_area_id,
+        "subject_code": subject_code,
+        "number": c.number,
+        "title": c.title,
+        "description": c.description,
+        "units": c.units,
+        "requisites_text": c.requisites_text,
+        "requisites_parsed": c.requisites_parsed,
+    }
+
+
 @api_view(["POST"])
 def courses_by_labels(request):
+    """
+    Resolve course labels like "COM SCI 32" to Course rows.
+    Uses targeted DB queries instead of loading every course into memory.
+    """
     labels = request.data.get("labels", [])
     if not labels:
         return Response({"courses": []})
-        
-    subjects = {s.id: s.code for s in Subject.objects.all()}
-    courses = Course.objects.all()
-    
-    course_by_label = {}
+
+    # Unique (subject code fragment, course number) pairs from labels
+    code_parts = set()
+    pairs = []
+    seen_pair = set()
+    for raw in labels:
+        if not raw:
+            continue
+        l_norm = _norm_label(raw)
+        parts = l_norm.rsplit(" ", 1)
+        if len(parts) != 2:
+            continue
+        code_part, num_part = parts[0].strip(), parts[1].strip()
+        if not code_part or not num_part:
+            continue
+        key = (code_part, num_part.upper())
+        if key in seen_pair:
+            continue
+        seen_pair.add(key)
+        code_parts.add(code_part)
+        pairs.append((code_part, num_part))
+
+    if not pairs:
+        return Response({"courses": []})
+
+    subj_q = Q()
+    for c in code_parts:
+        subj_q |= Q(code__iexact=c)
+    subject_rows = Subject.objects.filter(subj_q)
+    # Map normalized subject.code -> id (labels use the same spacing/casing as catalog codes)
+    code_to_id = {}
+    for s in subject_rows:
+        key = _norm_label(s.code)
+        code_to_id[key] = s.id
+
+    q = None
+    for code_part, num_part in pairs:
+        sid = code_to_id.get(code_part)
+        if sid is None:
+            continue
+        clause = Q(subject_area_id=sid, number__iexact=num_part)
+        q = clause if q is None else (q | clause)
+
+    if q is None:
+        return Response({"courses": []})
+
+    courses = list(Course.objects.filter(q))
+    subject_ids = {c.subject_area_id for c in courses}
+    subjects = {s.id: s.code for s in Subject.objects.filter(id__in=subject_ids)}
+
+    matched = []
     for c in courses:
         code = subjects.get(c.subject_area_id, "")
-        label = f"{code} {c.number}".strip().upper()
-        label = re.sub(r'\s+', ' ', label)
-        course_by_label[label] = {
-            "id": c.id,
-            "subject_area_id": c.subject_area_id,
-            "subject_code": code,
-            "number": c.number,
-            "title": c.title,
-            "description": c.description,
-            "units": c.units,
-            "requisites_text": c.requisites_text,
-            "requisites_parsed": c.requisites_parsed,
-        }
-        
-    matched = []
-    for l in labels:
-        if not l: continue
-        l_norm = re.sub(r'\s+', ' ', str(l).strip().upper())
-        if l_norm in course_by_label:
-            matched.append(course_by_label[l_norm])
-            
+        matched.append(_serialize_course_row(c, code))
+
     return Response({"courses": matched})
 
 @api_view(["GET"])

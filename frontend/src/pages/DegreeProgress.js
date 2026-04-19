@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import NavBar from '../components/NavBar';
 import { API_BASE } from '../api/constants';
+import { fetchSubjectsCatalog } from '../api/clientCache';
 import CourseDetailModal from '../components/Plan/CourseDetailModal';
 import './DegreeProgress.css';
 
@@ -60,45 +61,39 @@ function DegreeProgress() {
 
         const headers = { 'X-User-Id': user.id };
 
-        // TOTAL UNITS
-        const unitsRes = await fetch(`${API_BASE}/api/units/total_units/`, { headers });
-        if (unitsRes.ok) {
-          const data = await unitsRes.json();
-          setCompletedUnits(Number(data.total_units) || 0);
-        }
-
-        // MAJOR UNITS
-        const majorRes = await fetch(`${API_BASE}/api/units/major_units/`, { headers });
-        if (majorRes.ok) {
-          const data = await majorRes.json();
-          setCompletedMajorUnits(Number(data.major_units) || 0);
-        }
-
-        // UPPER DIV UNITS
-        const upperRes = await fetch(`${API_BASE}/api/units/upper_units/`, { headers });
-        if (upperRes.ok) {
-          const data = await upperRes.json();
-          setCompletedUpperUnits(Number(data.upper_units) || 0);
-        }
-
-        // GE UNITS
-        const geRes = await fetch(`${API_BASE}/api/units/ge_units/`, { headers });
-        if (geRes.ok) {
-          const data = await geRes.json();
-          setCompletedGeUnits(Number(data.ge_units) || 0);
-        }
-
-        if (takenLabels.length > 0) {
-          const cRes = await fetch(`${API_BASE}/api/courses/by-labels/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-User-Id': user.id
-            },
-            body: JSON.stringify({ labels: takenLabels })
-          });
-          const cData = await cRes.ok ? await cRes.json() : { courses: [] };
-          setTakenCourses(cData.courses || []);
+        const inlineUnits =
+          userData.total_units != null ||
+          userData.major_units != null ||
+          userData.upper_units != null ||
+          userData.ge_units != null;
+        if (inlineUnits) {
+          setCompletedUnits(Number(userData.total_units) || 0);
+          setCompletedMajorUnits(Number(userData.major_units) || 0);
+          setCompletedUpperUnits(Number(userData.upper_units) || 0);
+          setCompletedGeUnits(Number(userData.ge_units) || 0);
+        } else {
+          const [unitsRes, majorRes, upperRes, geRes] = await Promise.all([
+            fetch(`${API_BASE}/api/units/total_units/`, { headers }),
+            fetch(`${API_BASE}/api/units/major_units/`, { headers }),
+            fetch(`${API_BASE}/api/units/upper_units/`, { headers }),
+            fetch(`${API_BASE}/api/units/ge_units/`, { headers }),
+          ]);
+          if (unitsRes.ok) {
+            const data = await unitsRes.json();
+            setCompletedUnits(Number(data.total_units) || 0);
+          }
+          if (majorRes.ok) {
+            const data = await majorRes.json();
+            setCompletedMajorUnits(Number(data.major_units ?? data.total_units) || 0);
+          }
+          if (upperRes.ok) {
+            const data = await upperRes.json();
+            setCompletedUpperUnits(Number(data.upper_units ?? data.total_units) || 0);
+          }
+          if (geRes.ok) {
+            const data = await geRes.json();
+            setCompletedGeUnits(Number(data.ge_units ?? data.total_units) || 0);
+          }
         }
 
         const classesNeeded = userData.classes_needed || [];
@@ -116,48 +111,77 @@ function DegreeProgress() {
         });
 
         const neededLabelsArr = Array.from(neededLabels);
-        if (neededLabelsArr.length > 0) {
-          const cRes = await fetch(`${API_BASE}/api/courses/by-labels/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-User-Id': user.id
-            },
-            body: JSON.stringify({ labels: neededLabelsArr })
-          });
-          const cData = await cRes.ok ? await cRes.json() : { courses: [] };
+        const canonLower = (lbl) => String(lbl).trim().toLowerCase().replace(/\s+/g, ' ');
+        const canonRowLower = (c) => `${c.subject_code} ${c.number}`.trim().toLowerCase().replace(/\s+/g, ' ');
 
+        const labelUnion = new Set();
+        takenLabels.forEach((l) => labelUnion.add(l));
+        neededLabelsArr.forEach((l) => labelUnion.add(l));
+        const uniqLabels = Array.from(labelUnion);
+
+        const jsonHeaders = {
+          'Content-Type': 'application/json',
+          'X-User-Id': user.id,
+        };
+
+        const bookmarksP = fetch(`${API_BASE}/api/bookmarks/`, { headers });
+        const labelsP =
+          uniqLabels.length > 0
+            ? fetch(`${API_BASE}/api/courses/by-labels/`, {
+                method: 'POST',
+                headers: jsonHeaders,
+                body: JSON.stringify({ labels: uniqLabels }),
+              })
+            : Promise.resolve(null);
+        const subjectsP =
+          neededLabelsArr.length > 0 ? fetchSubjectsCatalog(API_BASE) : Promise.resolve(null);
+
+        const [bmRes, cRes, subjData] = await Promise.all([bookmarksP, labelsP, subjectsP]);
+
+        let allCourses = [];
+        if (cRes && cRes.ok) {
+          const cData = await cRes.json();
+          allCourses = Array.isArray(cData?.courses) ? cData.courses : [];
+        }
+
+        const takenLookup = new Set(takenLabels.map(canonLower));
+        setTakenCourses(
+          allCourses.filter((c) => takenLookup.has(canonRowLower(c)))
+        );
+
+        if (neededLabelsArr.length > 0) {
+          const neededLookup = new Set(neededLabelsArr.map(canonLower));
           const labelToCourse = {};
-          cData.courses.forEach(c => {
-            labelToCourse[`${c.subject_code} ${c.number}`.trim().toLowerCase().replace(/\s+/g, ' ')] = c;
+          allCourses.forEach((c) => {
+            const k = canonRowLower(c);
+            if (neededLookup.has(k)) labelToCourse[k] = c;
           });
           setNeededCourseCache(labelToCourse);
 
-          // Build suggestions based on prerequisites natively
-          const subjRes = await fetch(`${API_BASE}/api/subjects/`, { headers: { 'Content-Type': 'application/json' } });
-          const subjData = await subjRes.ok ? await subjRes.json() : { subjects: [] };
           const subjectMap = {};
-          subjData.subjects?.forEach(s => { subjectMap[s.name.toLowerCase()] = s.code.toUpperCase(); });
+          (subjData?.subjects || []).forEach((s) => {
+            subjectMap[s.name.toLowerCase()] = s.code.toUpperCase();
+          });
 
-          const takenSet = new Set(takenLabels.map(lbl => lbl.toUpperCase().replace(/\s+/g, ' ')));
+          const takenSet = new Set(takenLabels.map((lbl) => lbl.toUpperCase().replace(/\s+/g, ' ')));
           const suggested = [];
 
-          Object.values(labelToCourse).forEach(course => {
+          Object.values(labelToCourse).forEach((course) => {
             const courseLabel = `${course.subject_code} ${course.number}`.toUpperCase().replace(/\s+/g, ' ');
             if (takenSet.has(courseLabel)) return;
 
             let prereqsMet = true;
             if (course.requisites_parsed && course.requisites_parsed.requisites) {
-              const enforced = course.requisites_parsed.requisites.find(r => r.type === 'enforced');
+              const enforced = course.requisites_parsed.requisites.find((r) => r.type === 'enforced');
               if (enforced && enforced.groups && enforced.groups.length > 0) {
-                prereqsMet = enforced.groups.every(group => {
-                  return group.courses.some(reqC => {
+                prereqsMet = enforced.groups.every((group) =>
+                  group.courses.some((reqC) => {
                     const subjName = (reqC.subject || '').toLowerCase();
                     const subjCode = subjectMap[subjName] || subjName.toUpperCase();
                     const reqLabel = `${subjCode} ${reqC.number}`.toUpperCase().replace(/\s+/g, ' ');
                     return takenSet.has(reqLabel);
-                  });
-                });
+                  })
+                );
               }
             }
             if (prereqsMet) {
@@ -165,11 +189,11 @@ function DegreeProgress() {
             }
           });
           setSuggestedCourses(suggested);
+        } else {
+          setNeededCourseCache({});
+          setSuggestedCourses([]);
         }
 
-        const bmRes = await fetch(`${API_BASE}/api/bookmarks/`, {
-          headers: { 'X-User-Id': user.id }
-        });
         if (bmRes.ok) {
           const bmData = await bmRes.json();
           setBookmarkedCourseIds(new Set(bmData.bookmarks || []));

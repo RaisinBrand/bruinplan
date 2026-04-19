@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import NavBar from '../components/NavBar';
 import { API_BASE } from '../api/constants';
+import { fetchSubjectsCatalog, fetchCoursesForSubjectCached, sortSubjectsList } from '../api/clientCache';
 import AddToPlanModal from '../components/Explore/AddToPlanModal';
 import GradeDistributionChart from '../components/Explore/GradeDistributionChart';
+import { getSubjectColorCode } from '../utils/colors';
 import './ExploreCourses.css';
 
 function ExploreCourses() {
@@ -48,18 +50,8 @@ function ExploreCourses() {
       setSubjectsLoading(true);
       setSubjectsError('');
       try {
-        const res = await fetch(`${API_BASE}/api/subjects`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const list = Array.isArray(data?.subjects) ? data.subjects : [];
-        list.sort((a, b) => {
-          const c = (a.code || '').localeCompare(b.code || '');
-          return c !== 0 ? c : (a.name || '').localeCompare(b.name || '');
-        });
-        if (!cancelled) setSubjects(list);
+        const data = await fetchSubjectsCatalog(API_BASE);
+        if (!cancelled) setSubjects(sortSubjectsList(data));
       } catch (e) {
         if (!cancelled) setSubjectsError('Failed to load subjects.');
       } finally {
@@ -155,12 +147,7 @@ function ExploreCourses() {
       setCoursesLoading(true);
       setCoursesError('');
       try {
-        const res = await fetch(`${API_BASE}/api/courses/${selectedSubject.id}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await fetchCoursesForSubjectCached(API_BASE, selectedSubject.id);
         const list = Array.isArray(data?.courses) ? data.courses : [];
         if (!cancelled) setCourses(list);
       } catch (e) {
@@ -433,13 +420,22 @@ function ExploreCourses() {
           {coursesError && <div className="results-count" style={{ color: 'red' }}>{coursesError}</div>}
 
           <div className="courses-list">
-            {!coursesLoading && filteredCourses.map(course => (
+            {!coursesLoading && filteredCourses.map(course => {
+              const colors = getSubjectColorCode(course.subjectCode || selectedSubject?.code || '');
+              return (
               <div key={course.id} className="course-card-wrapper">
-                <div className="course-card">
+                <div
+                  className="course-card"
+                  style={{ backgroundColor: colors.bg, borderLeftColor: colors.border }}
+                >
                   <div className="course-info" onClick={() => toggleCourseExpand(course.id)}>
-                    <div className="course-code">{courseLabel(course)}</div>
-                    <div className="course-title">{course.title}</div>
-                    <div className="course-units">{course.units} Units</div>
+                    <div className="course-name">{courseLabel(course)}</div>
+                    {course.title ? (
+                      <div className="course-title-sidebar">{course.title}</div>
+                    ) : null}
+                    <div className="course-units">
+                      {course.units != null ? `${course.units} units` : ''}
+                    </div>
                   </div>
                   <div className="course-actions">
                     <button className="icon-button bookmark-icon" onClick={(e) => toggleBookmark(e, course.id)}>
@@ -504,7 +500,8 @@ function ExploreCourses() {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
         </main>
       </div>

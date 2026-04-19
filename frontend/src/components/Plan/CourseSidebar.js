@@ -159,11 +159,11 @@ function CourseSidebar({
               }
             }}
           >
-            <div className="course-header">
-              <span className="course-code">{courseLabel(c)}</span>
-            </div>
-            <div className="course-title">{c.title}</div>
-            <div className="course-units">{c.units} units</div>
+            <div className="course-name">{courseLabel(c)}</div>
+            {c.title ? (
+              <div className="course-title-sidebar">{c.title}</div>
+            ) : null}
+            <div className="course-units">{c.units != null ? `${c.units} units` : ''}</div>
           </div>
         )})}
       </div>

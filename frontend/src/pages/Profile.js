@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import NavBar from '../components/NavBar';
 import { API_BASE } from '../api/constants';
+import { fetchSubjectsCatalog, sortSubjectsList } from '../api/clientCache';
 import './Profile.css';
 
 function Profile() {
@@ -15,17 +16,16 @@ function Profile() {
   const [subjects, setSubjects] = useState([]);
 
   useEffect(() => {
-    const fetchSubjects = async () => {
+    let cancelled = false;
+    (async () => {
       try {
-        const localUrl = API_BASE + '/api';
-        const res = await fetch(`${localUrl}/subjects/`);
-        const data = await res.json();
-        setSubjects(data.subjects || []);
+        const data = await fetchSubjectsCatalog(API_BASE);
+        if (!cancelled) setSubjects(sortSubjectsList(data));
       } catch (e) {
-        console.error("Failed to fetch subjects", e);
+        console.error('Failed to fetch subjects', e);
       }
-    };
-    fetchSubjects();
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

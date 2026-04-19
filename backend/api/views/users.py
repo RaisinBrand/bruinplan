@@ -46,6 +46,12 @@ def _get_user_uuid_from_supabase_jwt(request):
         return None, Response({"error": "invalid jwt or invalid jwt format"}, status=401)
 
 
+def _num_field(v):
+    if v is None:
+        return None
+    return float(v)
+
+
 def _serialize_profile(profile: UserProfile):
     return {
         "id": str(profile.id),
@@ -61,6 +67,11 @@ def _serialize_profile(profile: UserProfile):
         "classes_needed": profile.classes_needed,
         "created_at": profile.created_at,
         "updated_at": profile.updated_at,
+        # Degree progress / units (same row — avoids 4 extra HTTP + DB round-trips)
+        "total_units": _num_field(profile.total_units),
+        "major_units": _num_field(profile.major_units),
+        "upper_units": _num_field(profile.upper_units),
+        "ge_units": _num_field(profile.ge_units),
     }
 
 
