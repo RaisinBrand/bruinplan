@@ -859,12 +859,12 @@ function Plan() {
             </button>
           </div>
 
-          <DegreeProgress 
+          {/* <DegreeProgress 
             planItems={planItems}
             courseCache={courseCache}
             userMajor={user?.major}
             subjects={subjects}
-          />
+          /> */}
 
           <ScheduleGrid
             itemsByYearTerm={itemsByYearTerm}
