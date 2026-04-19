@@ -1,17 +1,15 @@
-export function getSubjectColorCode(subject) {
-  if (!subject) return { bg: 'white', border: '#e0e0e0' }; // fallback
+export const COURSE_COLOR_PALETTE = [
+  '#ef4444', // red
+  '#f59e0b', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#3b82f6', // blue
+  '#8b5cf6', // purple
+  '#ec4899', // pink
+];
 
-  let hash = 0;
-  for (let i = 0; i < subject.length; i++) {
-    hash = subject.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  const hue = Math.abs(hash) % 360;
-
-  return {
-    bg: `hsl(${hue}, 85%, 97%)`,
-    border: `hsl(${hue}, 70%, 50%)`
-  };
+export function getSubjectColorCode() {
+  return { bg: '#ffffff', border: '#e0e0e0' };
 }
 
 // Derive a soft background tint from a hex color chosen by the user.

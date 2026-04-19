@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSubjectColorCode, colorsFromHex } from '../../utils/colors';
+import { getSubjectColorCode, colorsFromHex, COURSE_COLOR_PALETTE } from '../../utils/colors';
 
 const TERMS = ['FALL', 'WINTER', 'SPRING', 'SUMMER_A', 'SUMMER_C'];
 const TERM_LABELS = { FALL: 'Fall', WINTER: 'Winter', SPRING: 'Spring', SUMMER_A: 'Summer A', SUMMER_C: 'Summer C' };
@@ -108,31 +108,32 @@ function ScheduleGrid({
                             onMouseDown={(e) => e.stopPropagation()}
                             draggable={false}
                           >
-                            <label
-                              className="course-color-btn"
-                              title="Change color"
-                              style={{ backgroundColor: colors.border }}
-                            >
-                              <input
-                                type="color"
-                                className="course-color-input"
-                                value={override || '#247ad6'}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => onSetCourseColor?.(item.course_id, e.target.value)}
-                              />
-                            </label>
-                            {override && (
-                              <button
-                                className="course-color-reset-btn"
-                                title="Reset color"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onResetCourseColor?.(item.course_id);
-                                }}
-                              >
-                                ↺
-                              </button>
-                            )}
+                            <div className="course-color-swatches">
+                              {COURSE_COLOR_PALETTE.map(hex => (
+                                <button
+                                  key={hex}
+                                  type="button"
+                                  className={`course-color-swatch${override === hex ? ' selected' : ''}`}
+                                  style={{ backgroundColor: hex }}
+                                  title={`Set color ${hex}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSetCourseColor?.(item.course_id, hex);
+                                  }}
+                                />
+                              ))}
+                              {override && (
+                                <button
+                                  type="button"
+                                  className="course-color-swatch reset"
+                                  title="Reset to white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onResetCourseColor?.(item.course_id);
+                                  }}
+                                />
+                              )}
+                            </div>
                             <button
                               className="delete-item-btn"
                               onClick={(e) => {
