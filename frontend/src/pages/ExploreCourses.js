@@ -5,6 +5,7 @@ import { API_BASE } from '../api/constants';
 import { fetchSubjectsCatalog, fetchCoursesForSubjectCached, sortSubjectsList } from '../api/clientCache';
 import AddToPlanModal from '../components/Explore/AddToPlanModal';
 import GradeDistributionChart from '../components/Explore/GradeDistributionChart';
+import ProfessorRatings from '../components/Explore/ProfessorRatings';
 import { getSubjectColorCode } from '../utils/colors';
 import './ExploreCourses.css';
 
@@ -466,6 +467,12 @@ function ExploreCourses() {
                       >
                         Grade Distributions
                       </button>
+                      <button
+                        className={`tab-button ${activeTab[course.id] === 'reviews' ? 'active' : ''}`}
+                        onClick={() => setTab(course.id, 'reviews')}
+                      >
+                        Professors & Reviews
+                      </button>
                     </div>
 
                     {(!activeTab[course.id] || activeTab[course.id] === 'details') && (
@@ -495,6 +502,12 @@ function ExploreCourses() {
                     {activeTab[course.id] === 'times' && (
                         <div className="course-details-content">
                             <GradeDistributionChart courseId={course.id} />
+                        </div>
+                    )}
+
+                    {activeTab[course.id] === 'reviews' && (
+                        <div className="course-details-content">
+                            <ProfessorRatings courseId={course.id} />
                         </div>
                     )}
                   </div>

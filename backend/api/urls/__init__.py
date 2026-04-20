@@ -11,5 +11,5 @@ urlpatterns = [
     path("dars/", include("api.urls.dars")),
     path("bookmarks/", include("api.urls.bookmarks")),
     path("units/", include("api.urls.units")),
-
+    path("course_professors/", include("api.urls.courseProfessors")),
 ]
