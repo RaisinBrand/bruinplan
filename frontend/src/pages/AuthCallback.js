@@ -20,7 +20,7 @@ function AuthCallback() {
       
       // We have the session. Send to our backend googleLogin endpoint
       try {
-        const response = await fetch(`${API_BASE}/api/auth/googleLogin/`, {
+        const response = await fetch(`${API_BASE}/api/auth/google-login/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

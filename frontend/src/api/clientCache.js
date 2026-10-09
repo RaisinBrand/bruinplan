@@ -69,7 +69,7 @@ const COURSE_LIST_TTL_MS = 6 * 60 * 60 * 1000;
 
 export async function fetchCoursesForSubjectCached(apiBase, subjectId) {
   if (!subjectId) return { courses: [] };
-  const url = `${apiBase}/api/courses/${subjectId}`;
+  const url = `${apiBase}/api/courses/${subjectId}/`;
   const lsKey = courseSubjectKey(subjectId);
   const cached = readLsJson(lsKey);
   if (cached && typeof cached.savedAt === 'number' && Date.now() - cached.savedAt < COURSE_LIST_TTL_MS) {

@@ -41,7 +41,7 @@ function Profile() {
         const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const localUrl = API_BASE + '/api';
         
-        const res = await fetch(`${localUrl}/user/update/`, {
+        const res = await fetch(`${localUrl}/profile/`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

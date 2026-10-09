@@ -458,7 +458,7 @@ function Plan() {
 
       try {
         const res = await fetch(
-          `${API_BASE}/api/plans/${planId}/items/${itemId}`,
+          `${API_BASE}/api/plans/${planId}/items/${itemId}/`,
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-User-Id': userId },
@@ -603,7 +603,7 @@ function Plan() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/api/plans/${planId}/items/${itemId}`,
+        `${API_BASE}/api/plans/${planId}/items/${itemId}/`,
         {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json', 'X-User-Id': userId },
@@ -687,7 +687,7 @@ function Plan() {
   const handleDeletePlan = async (planId) => {
     if (!window.confirm("Are you sure you want to delete this plan?")) return;
     try {
-      const res = await fetch(`${API_BASE}/api/plans/${planId}`, {
+      const res = await fetch(`${API_BASE}/api/plans/${planId}/`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'X-User-Id': user?.id },
       });
@@ -811,7 +811,7 @@ function Plan() {
                       return;
                     }
                     try {
-                      const res = await fetch(`${API_BASE}/api/plans/${selectedPlan.id}`, {
+                      const res = await fetch(`${API_BASE}/api/plans/${selectedPlan.id}/`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'X-User-Id': user?.id },
                         body: JSON.stringify({ name: trimmed }),
@@ -834,7 +834,7 @@ function Plan() {
                     return;
                   }
                   try {
-                    const res = await fetch(`${API_BASE}/api/plans/${selectedPlan.id}`, {
+                    const res = await fetch(`${API_BASE}/api/plans/${selectedPlan.id}/`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json', 'X-User-Id': user?.id },
                       body: JSON.stringify({ name: trimmed }),
