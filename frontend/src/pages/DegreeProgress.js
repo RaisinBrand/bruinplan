@@ -45,7 +45,7 @@ function DegreeProgress() {
       setTakenCoursesLoading(true);
       setNeededCoursesLoading(true);
       try {
-        const userRes = await fetch(`${API_BASE}/api/user/`, {
+        const userRes = await fetch(`${API_BASE}/api/profile/`, {
           headers: { 'X-User-Id': user.id }
         });
         if (!userRes.ok) throw new Error('Failed to fetch user profile');

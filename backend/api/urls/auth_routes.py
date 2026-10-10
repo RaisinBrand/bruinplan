@@ -1,11 +1,9 @@
 from django.urls import path
-from api.views.auth_views import createUser, getProfile, updateProfile, loginUser, googleLogin, createProfile
+from api.views.auth_views import createUser, loginUser, googleLogin, createProfile
 
 urlpatterns = [
-    path("createUser/", createUser),
-    path("user/", getProfile),
-    path("updateProfile/", updateProfile),
-    path("loginUser/", loginUser),
-    path("googleLogin/", googleLogin),
-    path("createProfile/", createProfile),
+    path("sign-up/", createUser),
+    path("login/", loginUser),
+    path("google-login/", googleLogin),
+    path("complete-profile/", createProfile),
 ]

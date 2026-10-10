@@ -14,7 +14,7 @@ function Login() {
 
   const loginUser = async ({ email, password }) => {
     const response = await fetch(
-      `${API_BASE}/api/auth/loginUser/`,
+      `${API_BASE}/api/auth/login/`,
       {
         method: "POST",
         headers: {

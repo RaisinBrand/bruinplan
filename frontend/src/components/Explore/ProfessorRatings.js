@@ -11,7 +11,7 @@ function ProfessorRatings({ courseId }) {
   useEffect(() => {
     async function fetchRatings() {
       try {
-        const res = await fetch(`${API_BASE}/api/course_professors/?course_id=${courseId}`);
+        const res = await fetch(`${API_BASE}/api/course-professors/?course_id=${courseId}`);
         if (res.ok) {
           const json = await res.json();
           setProfessors(json.professors || []);

@@ -66,8 +66,8 @@ function ProfileSetup() {
       }
 
       const endpoint = isGoogle 
-        ? `${API_BASE}/api/auth/createProfile/` 
-        : `${API_BASE}/api/auth/createUser/`;
+        ? `${API_BASE}/api/auth/complete-profile/`
+        : `${API_BASE}/api/auth/sign-up/`;
 
       const fetchOptions = {
         method: "POST",

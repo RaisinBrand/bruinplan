@@ -3,7 +3,7 @@ const API_BASE = BASE + "/api";
 
 /* GET profile */
 export async function apiGetProfile(accessToken) {
-  const res = await fetch(`${API_BASE}/user/`, {
+  const res = await fetch(`${API_BASE}/profile/`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -21,7 +21,7 @@ export async function apiGetProfile(accessToken) {
 
 /* PATCH profile */
 export async function apiUpdateProfile(accessToken, partial) {
-  const res = await fetch(`${API_BASE}/user/update/`, {
+  const res = await fetch(`${API_BASE}/profile/`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
