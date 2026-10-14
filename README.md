@@ -1,13 +1,3 @@
-<<<<<<< Updated upstream
-# README OUTDATED
-
-# backend
-python 3.12
-pip install -r requirements.txt
-=======
-# BruinPlan
->>>>>>> Stashed changes
-
 ## Run the app
 
 Run all commands below from the repository root.
